@@ -25,28 +25,30 @@
 
     <meta name="description" content="BeatSaber web replay viewer.">
     <meta property="og:description" content="BeatSaber web replay viewer.">
-    <meta property="og:image" content="https://www.replay.beatleader.xyz/assets/img/preview.png">
     <meta property="og:title" content="BeatSaber replays">
     <meta name="twitter:title" content="BeatSaber replays">
     <meta name="twitter:description" content="BeatSaber web replay viewer.">
     <meta name="twitter:site" content="replay.beatleader.xyz">
-    <meta name="twitter:image" content="https://www.replay.beatleader.xyz/assets/img/preview.png">
     <meta name="twitter:image:alt" content="BeatSaber replays">
 
     <meta name="twitter:player:width" content="700" />
     <meta name="twitter:player:height" content="400" />
     <meta name="twitter:card" content="player">
 
-    <meta property="og:type" content="video.other">
-    <meta property="og:video:type" content="text/html">
-    <meta property="og:video:width" content="1280">
-    <meta property="og:video:height" content="720">
-
     <script>
-      ["og:url", "og:video:url", "og:video:secure_url", "twitter:player"].forEach(attribute => {
+      ["og:url", "twitter:player"].forEach(attribute => {
         var link = document.createElement('meta');  
         link.setAttribute('property', attribute);   
         link.content = document.location;  
+        document.getElementsByTagName('head')[0].appendChild(link);
+      });
+    </script>
+
+    <script>
+      ["og:image", "twitter:image"].forEach(attribute => {
+        var link = document.createElement('meta');  
+        link.setAttribute('property', attribute);   
+        link.content = "https://beatleader.azurewebsites.net/preview/replay?link=" + encodeURIComponent(document.location);  
         document.getElementsByTagName('head')[0].appendChild(link);
       });
     </script>
