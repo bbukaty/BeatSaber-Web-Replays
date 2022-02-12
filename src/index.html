@@ -48,7 +48,7 @@
       ["og:image", "twitter:image"].forEach(attribute => {
         var link = document.createElement('meta');  
         link.setAttribute('property', attribute);   
-        link.content = "https://beatleader.azurewebsites.net/preview/replay?link=" + encodeURIComponent(document.location);  
+        link.content = "https://beatleader.azurewebsites.net/preview/replay/" + encodeURIComponent(document.location) + ".png";  
         document.getElementsByTagName('head')[0].appendChild(link);
       });
     </script>
