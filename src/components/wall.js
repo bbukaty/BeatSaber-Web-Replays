@@ -28,6 +28,7 @@ AFRAME.registerComponent('wall', {
     warmupPosition: {default: 0},
     width: {default: 1},
     positionOffset: {default: 0},
+    spawnRotation: {default: 0},
     time: {default: 0},
     anticipationTime: {default: 0},
     warmupTime: {default: 0},
@@ -65,7 +66,9 @@ AFRAME.registerComponent('wall', {
     }
     
     newPosition -= this.headset.object3D.position.z;
-    position.z = newPosition;
+
+    var direction = position.clone().sub(this.origin).normalize();
+    this.el.object3D.position.copy(direction.multiplyScalar(-newPosition).add(this.origin));
 
     if (this.hit && currentTime > this.hitWall.time) {
       this.hit = false;
@@ -75,6 +78,27 @@ AFRAME.registerComponent('wall', {
 
   onGenerate: function () {
     this.updatePosition();
+  },
+
+  // obj - your object (THREE.Object3D or derived)
+  // point - the point of rotation (THREE.Vector3)
+  // axis - the axis of rotation (normalized THREE.Vector3)
+  // theta - radian value of rotation
+  // pointIsWorld - boolean indicating the point is in world coordinates (default = false)
+  rotateAboutPoint: function (obj, point, axis, theta, pointIsWorld){
+    pointIsWorld = (pointIsWorld === undefined)? false : pointIsWorld;
+
+    if(pointIsWorld){
+        obj.parent.localToWorld(obj.position); // compensate for world coordinate
+    }
+
+    obj.position.sub(point); // remove the offset
+    obj.position.applyAxisAngle(axis, theta); // rotate the POSITION
+    obj.position.add(point); // re-add the offset
+
+    if(pointIsWorld){
+        obj.parent.worldToLocal(obj.position); // undo world coordinates compensation
+    }
   },
 
   update: function () {
@@ -117,16 +141,31 @@ AFRAME.registerComponent('wall', {
 
     // Box geometry is constructed from the local 0,0,0 growing in the positive and negative
     // x and z axis. We have to shift by half width and depth to be positioned correctly.
+    let origin = new THREE.Vector3(getHorizontalPosition(data.horizontalPosition) + width / 2  - 0.25, data.height + RAISE_Y_OFFSET, 0)
+    
+    // Set position.
     el.object3D.position.set(
-      getHorizontalPosition(data.horizontalPosition) + width / 2  - 0.25,
-      data.height + RAISE_Y_OFFSET,
+      origin.x,
+      origin.y,
       data.anticipationPosition + data.warmupPosition - halfDepth
     );
+
     el.object3D.scale.set(
       width,
       2.5,
       data.durationSeconds * data.speed
     );
+    
+    let axis = new THREE.Vector3(0, 1, 0);
+    let theta = data.spawnRotation * 0.0175;
+
+    origin.applyAxisAngle(axis, theta);
+    this.origin = origin
+
+    this.rotateAboutPoint(el.object3D, new THREE.Vector3(0, 0, this.headset.object3D.position.z), axis, theta, true);
+    el.object3D.lookAt(origin);
+
+    // Set up rotation warmup.
   },
 
   setMappingExtensionsHeight: function (startHeight, height) {

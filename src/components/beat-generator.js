@@ -63,6 +63,8 @@ AFRAME.registerComponent('beat-generator', {
     this.twister = document.getElementById('twister');
     this.leftStageLasers = document.getElementById('leftStageLasers');
     this.rightStageLasers = document.getElementById('rightStageLasers');
+    this.spawnRotation = 0;
+    this.spawnRotations = {};
 
     this.el.addEventListener('cleargame', this.clearBeats.bind(this));
     this.el.addEventListener('challengeloadend', evt => {
@@ -139,6 +141,15 @@ AFRAME.registerComponent('beat-generator', {
       }
     }
 
+    let spawnRotation = 0;
+
+    events.forEach(event => {
+      if (event._type == 15) {
+        spawnRotation += 60 - (event._value < 4 ? event._value : event._value + 1) * 15;
+        this.spawnRotations[event._time] = spawnRotation;
+      }
+    });
+
     var group, groupTime;
 
     const processGroup = () => {
@@ -208,6 +219,17 @@ AFRAME.registerComponent('beat-generator', {
     const beatsTime = this.beatsTime + skipDebug;
 
     const msPerBeat = 1000 * 60 / this.bpm;
+
+    const eventsTime = this.eventsTime + skipDebug;
+    const rotations = Object.keys(this.spawnRotations);
+    for (let i = 0; i < rotations.length; ++i) {
+      let noteTime = rotations[i] * msPerBeat;
+      if (noteTime > prevEventsTime && noteTime <= eventsTime) {
+        this.spawnRotation = this.spawnRotations[rotations[i]];
+        break;
+      }
+    }
+
     const notes = this.beatData._notes;
     for (let i = 0; i < notes.length; ++i) {
       let noteTime = notes[i]._time * msPerBeat;
@@ -235,7 +257,6 @@ AFRAME.registerComponent('beat-generator', {
 
     if (!this.data.noEffects && !this.isSeeking) {
       // Stage events.
-      const eventsTime = this.eventsTime + skipDebug;
       const events = this.beatData._events;
       for (let i = 0; i < events.length; ++i) {
         let noteTime = events[i]._time * msPerBeat;
@@ -312,6 +333,7 @@ AFRAME.registerComponent('beat-generator', {
       beatObj.type = type;
       beatObj.warmupPosition = -data.beatWarmupTime * data.beatWarmupSpeed;
       beatObj.index = note.index;
+      beatObj.spawnRotation = this.spawnRotation;
 
       beatObj.time = note._time * (60 / this.bpm);
       beatObj.anticipationTime = this.beatAnticipationTime;
@@ -360,6 +382,7 @@ AFRAME.registerComponent('beat-generator', {
       wallObj.warmupPosition = -data.beatWarmupTime * data.beatWarmupSpeed;
       // wall._width can be like 1 or 2. Map that to 0.6 thickness.
       wallObj.width = wall._width * WALL_THICKNESS;
+      wallObj.spawnRotation = this.spawnRotation;
 
       wallObj.time = wall._time * (60 / this.bpm);
       wallObj.anticipationTime = this.beatAnticipationTime;
@@ -433,6 +456,9 @@ AFRAME.registerComponent('beat-generator', {
         break;
       case 13:
         this.rightStageLasers.components['stage-lasers'].pulse(event._value);
+        break;
+      default:
+        console.log(event);
         break;
     }
   },

@@ -39,6 +39,7 @@ AFRAME.registerComponent('beat', {
     anticipationTime: {default: 0},
     warmupTime: {default: 0},
     warmupSpeed: {default: 0},
+    spawnRotation: {default: 0},
     // Loading cubes
     loadingCube: {default: false},
     visible: {default: true},
@@ -188,7 +189,7 @@ AFRAME.registerComponent('beat', {
   updatePosition: function () {
     const el = this.el;
     const data = this.data;
-    const position = el.object3D.position;
+    let position = el.object3D.position;
     const rotation = el.object3D.rotation;
     const song = this.song;
 
@@ -212,7 +213,10 @@ AFRAME.registerComponent('beat', {
     }
 
     newPosition += this.headset.object3D.position.z;
-    position.z = newPosition;
+
+    var direction = position.clone().sub(this.origin).normalize();
+    el.object3D.position.copy(direction.multiplyScalar(-newPosition).add(this.origin));
+    position = el.object3D.position;
 
     if (currentRotationWarmupTime <= -data.warmupTime) {
       currentRotationWarmupTime += data.warmupTime;
@@ -289,6 +293,27 @@ AFRAME.registerComponent('beat', {
     this.returnToPool();
   },
 
+  // obj - your object (THREE.Object3D or derived)
+  // point - the point of rotation (THREE.Vector3)
+  // axis - the axis of rotation (normalized THREE.Vector3)
+  // theta - radian value of rotation
+  // pointIsWorld - boolean indicating the point is in world coordinates (default = false)
+  rotateAboutPoint: function (obj, point, axis, theta, pointIsWorld){
+    pointIsWorld = (pointIsWorld === undefined)? false : pointIsWorld;
+
+    if(pointIsWorld){
+        obj.parent.localToWorld(obj.position); // compensate for world coordinate
+    }
+
+    obj.position.sub(point); // remove the offset
+    obj.position.applyAxisAngle(axis, theta); // rotate the POSITION
+    obj.position.add(point); // re-add the offset
+
+    if(pointIsWorld){
+        obj.parent.worldToLocal(obj.position); // undo world coordinates compensation
+    }
+  },
+
   /**
    * Called when summoned by beat-generator.
    */
@@ -296,13 +321,25 @@ AFRAME.registerComponent('beat', {
     const data = this.data;
     const el = this.el;
 
+    let origin = new THREE.Vector3(getHorizontalPosition(data.horizontalPosition), getVerticalPosition(data.verticalPosition), 0)
+    
     // Set position.
     el.object3D.position.set(
-      getHorizontalPosition(data.horizontalPosition),
-      getVerticalPosition(data.verticalPosition),
+      origin.x,
+      origin.y,
       data.anticipationPosition + data.warmupPosition
     );
-    el.object3D.rotation.set(0, 0, THREE.Math.degToRad(this.rotations[data.cutDirection] + (this.data.rotationOffset ? this.data.rotationOffset : 0.0)));
+    
+    
+    let axis = new THREE.Vector3(0, 1, 0);
+    let theta = data.spawnRotation * 0.0175;
+
+    origin.applyAxisAngle(axis, theta);
+    this.origin = origin
+
+    this.rotateAboutPoint(el.object3D, new THREE.Vector3(0, 0, this.headset.object3D.position.z), axis, theta, true);
+    el.object3D.lookAt(origin);
+    el.object3D.rotation.z = THREE.Math.degToRad(this.rotations[data.cutDirection] + (this.data.rotationOffset ? this.data.rotationOffset : 0.0));
 
     // Set up rotation warmup.
     this.startRotationZ = this.el.object3D.rotation.z;
@@ -344,6 +381,10 @@ AFRAME.registerComponent('beat', {
         }
       }
       this.replayNote = result;
+    }
+
+    if (this.replayNote == null) {
+      this.replayNote = {}
     }
 
     if (this.settings.settings.highlightErrors && this.replayNote && this.replayNote.score < 0) {
@@ -568,6 +609,7 @@ AFRAME.registerComponent('beat', {
   },
 
   postScoreEvent: function () {
+    if (!this.replayNote.time) return;
     const timeToScore = this.replayNote.time - this.song.getCurrentTime();
 
     const payload = {index: this.replayNote.i};
@@ -999,6 +1041,8 @@ AFRAME.registerComponent('beat', {
           break;
         }
       }
+
+      if (!judgment) return {color: "#fff", scale: 0};
 
       color.setRGB(judgment.color[0], judgment.color[1], judgment.color[2])
       fadeColor.setRGB(fadeJudgment.color[0], fadeJudgment.color[1], fadeJudgment.color[2]);
