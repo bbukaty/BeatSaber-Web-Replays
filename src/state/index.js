@@ -99,6 +99,7 @@ AFRAME.registerState({
     useractive: false,
     showControls: true,
     wrongMisses: 0,
+    spawnRotation: 0,
     saberScale: new THREE.Vector3(1, 1, 1),
     saberGlowScale: new THREE.Vector3(1, 1.05, 1),
     settings: {showHeadset: false, volume: 0.0},

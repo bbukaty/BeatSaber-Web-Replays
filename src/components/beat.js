@@ -214,9 +214,10 @@ AFRAME.registerComponent('beat', {
 
     newPosition += this.headset.object3D.position.z;
 
-    var direction = position.clone().sub(this.origin).normalize();
+    var direction = this.startPosition.clone().sub(this.origin).normalize();
     el.object3D.position.copy(direction.multiplyScalar(-newPosition).add(this.origin));
     position = el.object3D.position;
+    this.currentPosition = newPosition;
 
     if (currentRotationWarmupTime <= -data.warmupTime) {
       currentRotationWarmupTime += data.warmupTime;
@@ -264,22 +265,20 @@ AFRAME.registerComponent('beat', {
         return;
       }
     }
-    const el = this.el;
-    const position = el.object3D.position;
 
     if (this.destroyed) {
       this.tockDestroyed(timeDelta);
       // Check to remove score entity from pool.
     } else {
-      if (position.z > collisionZThreshold) { this.checkCollisions(); }
+      if (this.currentPosition > collisionZThreshold) { this.checkCollisions(); }
 
       this.updatePosition();
 
-      if (this.data.type != 'mine' && position.z > 0 && this.replayNote.score != NoteErrorType.Miss && this.song.getCurrentTime() > this.replayNote.time) {
+      if (this.data.type != 'mine' && this.currentPosition > 0 && this.replayNote.score != NoteErrorType.Miss && this.song.getCurrentTime() > this.replayNote.time) {
         this.showScore();
         this.destroyBeat(this.saberEls[this.replayNote.colorType]);
       } else {
-        this.backToPool = position.z >= 2;
+        this.backToPool = this.currentPosition >= 2;
         if (this.backToPool) { this.missHit(); }
       }
     }
@@ -322,14 +321,13 @@ AFRAME.registerComponent('beat', {
     const el = this.el;
 
     let origin = new THREE.Vector3(getHorizontalPosition(data.horizontalPosition), getVerticalPosition(data.verticalPosition), 0)
-    
+    this.currentPosition = data.anticipationPosition + data.warmupPosition
     // Set position.
     el.object3D.position.set(
       origin.x,
       origin.y,
-      data.anticipationPosition + data.warmupPosition
+      this.currentPosition
     );
-    
     
     let axis = new THREE.Vector3(0, 1, 0);
     let theta = data.spawnRotation * 0.0175;
@@ -340,6 +338,7 @@ AFRAME.registerComponent('beat', {
     this.rotateAboutPoint(el.object3D, new THREE.Vector3(0, 0, this.headset.object3D.position.z), axis, theta, true);
     el.object3D.lookAt(origin);
     el.object3D.rotation.z = THREE.Math.degToRad(this.rotations[data.cutDirection] + (this.data.rotationOffset ? this.data.rotationOffset : 0.0));
+    this.startPosition = el.object3D.position.clone();
 
     // Set up rotation warmup.
     this.startRotationZ = this.el.object3D.rotation.z;

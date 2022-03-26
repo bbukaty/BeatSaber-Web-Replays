@@ -586,6 +586,17 @@ AFRAME.registerComponent('song-controls', {
       this.el.components['beat-generator'].updateJD(parseFloat(jdPoint.innerHTML));
       this.jdChanged = false;
     });
+
+    this.el.addEventListener('spawnRotationChanged', (event) => {
+      
+      ['substage', 'scoreContainer'].forEach(id => {
+        let scoreContainer = document.getElementById(id);
+        scoreContainer.setAttribute('animation__rotationY', 'from', event.detail.oldSpawnRotation);
+        scoreContainer.setAttribute('animation__rotationY', 'to', event.detail.spawnRotation);
+        scoreContainer.emit('spawnRotationStart', null, false);
+      });
+      
+    });
   },
 
   showMisses: (notes, buffer, target) => {

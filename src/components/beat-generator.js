@@ -221,6 +221,7 @@ AFRAME.registerComponent('beat-generator', {
     const msPerBeat = 1000 * 60 / this.bpm;
 
     const eventsTime = this.eventsTime + skipDebug;
+    const oldSpawnRotation = this.spawnRotation;
     const rotations = Object.keys(this.spawnRotations);
     for (let i = 0; i < rotations.length; ++i) {
       let noteTime = rotations[i] * msPerBeat;
@@ -228,6 +229,10 @@ AFRAME.registerComponent('beat-generator', {
         this.spawnRotation = this.spawnRotations[rotations[i]];
         break;
       }
+    }
+
+    if (this.spawnRotation != oldSpawnRotation) {
+      this.el.sceneEl.emit('spawnRotationChanged', {spawnRotation: this.spawnRotation, oldSpawnRotation}, false);
     }
 
     const notes = this.beatData._notes;

@@ -67,7 +67,7 @@ AFRAME.registerComponent('wall', {
     
     newPosition -= this.headset.object3D.position.z;
 
-    var direction = position.clone().sub(this.origin).normalize();
+    var direction = this.startPosition.clone().sub(this.origin).normalize();
     this.el.object3D.position.copy(direction.multiplyScalar(-newPosition).add(this.origin));
 
     if (this.hit && currentTime > this.hitWall.time) {
@@ -125,10 +125,21 @@ AFRAME.registerComponent('wall', {
 
     const halfDepth = data.durationSeconds * (data.speed) / 2;
 
+    
+    // Box geometry is constructed from the local 0,0,0 growing in the positive and negative
+    // x and z axis. We have to shift by half width and depth to be positioned correctly.
+    let origin;
+    
     if (data.isCeiling) {
-      el.object3D.position.set(
+      origin = new THREE.Vector3(
         getHorizontalPosition(data.horizontalPosition) + width / 2  - 0.25,
         CEILING_HEIGHT,
+        0
+      );
+      // Set position.
+      el.object3D.position.set(
+        origin.x,
+        origin.y,
         data.anticipationPosition + data.warmupPosition - halfDepth
       );
       el.object3D.scale.set(
@@ -136,26 +147,21 @@ AFRAME.registerComponent('wall', {
         CEILING_THICKNESS,
         data.durationSeconds * data.speed
       );
-      return;
+    } else {
+      origin = new THREE.Vector3(getHorizontalPosition(data.horizontalPosition) + width / 2  - 0.25, data.height + RAISE_Y_OFFSET, 0);
+      // Set position.
+      el.object3D.position.set(
+        origin.x,
+        origin.y,
+        data.anticipationPosition + data.warmupPosition - halfDepth
+      );
+      el.object3D.scale.set(
+        width,
+        2.5,
+        data.durationSeconds * data.speed
+      );
     }
 
-    // Box geometry is constructed from the local 0,0,0 growing in the positive and negative
-    // x and z axis. We have to shift by half width and depth to be positioned correctly.
-    let origin = new THREE.Vector3(getHorizontalPosition(data.horizontalPosition) + width / 2  - 0.25, data.height + RAISE_Y_OFFSET, 0)
-    
-    // Set position.
-    el.object3D.position.set(
-      origin.x,
-      origin.y,
-      data.anticipationPosition + data.warmupPosition - halfDepth
-    );
-
-    el.object3D.scale.set(
-      width,
-      2.5,
-      data.durationSeconds * data.speed
-    );
-    
     let axis = new THREE.Vector3(0, 1, 0);
     let theta = data.spawnRotation * 0.0175;
 
@@ -165,6 +171,7 @@ AFRAME.registerComponent('wall', {
     this.rotateAboutPoint(el.object3D, new THREE.Vector3(0, 0, this.headset.object3D.position.z), axis, theta, true);
     el.object3D.lookAt(origin);
 
+    this.startPosition = el.object3D.position.clone();
     // Set up rotation warmup.
   },
 
