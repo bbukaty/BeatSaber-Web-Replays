@@ -589,7 +589,7 @@ AFRAME.registerComponent('song-controls', {
 
     this.el.addEventListener('spawnRotationChanged', (event) => {
       
-      ['substage', 'scoreContainer'].forEach(id => {
+      ['scoreContainer'].forEach(id => {
         let scoreContainer = document.getElementById(id);
         scoreContainer.setAttribute('animation__rotationY', 'from', event.detail.oldSpawnRotation);
         scoreContainer.setAttribute('animation__rotationY', 'to', event.detail.spawnRotation);
